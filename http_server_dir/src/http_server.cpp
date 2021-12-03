@@ -30,7 +30,7 @@ enum HTTP_METHOD {
   UNKNOWN,
 };
 
-static unordered_map<std::string, HTTP_METHOD> const str_http_method_table = { 
+static unordered_map<string, HTTP_METHOD> const str_http_method_table = { 
   {"GET", HTTP_METHOD::GET} 
 };
 
@@ -63,11 +63,17 @@ private:
 
             boost::split(lines, data_, boost::is_any_of("\r\n"), boost::token_compress_on);
 
+            if (lines.size() < 1) {
+              cerr << "[x] Warning: Weird request" << endl;
+              return;
+            }
+
             // Parse "<Method> <URI> <HTTP_VERSION>"
             boost::split(firstline, lines[0], boost::is_any_of(" "), boost::token_compress_on);
+            lines.erase(lines.begin());
 
             if (firstline.size() != 3) {
-              cerr << "[x] Warning: Weird connection" << endl;
+              cerr << "[x] Warning: Parsing error" << endl;
               for (auto word : firstline) {
                 cerr << "\t[x] " << word << endl;
               }
@@ -91,10 +97,49 @@ private:
             cout << "[>] URI   : " << uri_ << endl;
             cout << "[>] Ver   : " << http_version << endl;
 
-            // Parse "<Header>: <Value>"
+            // Parse Headers
+            headers_.clear();
+
             for (auto line : lines) {
-              cout << "[>] " << line << endl;
+              // Parse "<Header>: <Value>"
+              auto split_idx = line.find(": ");
+              
+              if (std::string::npos != split_idx)
+              {
+                string key = line.substr(0, split_idx);
+                string value = line.substr(split_idx + 2);
+                if (key == "Host") {
+                  headers_["HTTP_HOST"] = value;
+                }
+              }
             }
+
+            headers_["REQUEST_METHOD"]  = method_;
+            headers_["SERVER_PROTOCOL"] = http_version;
+            headers_["SERVER_ADDR"]     = socket_.local_endpoint().address().to_string();
+            headers_["SERVER_PORT"]     = to_string(socket_.local_endpoint().port());
+            headers_["REMOTE_ADDR"]     = socket_.remote_endpoint().address().to_string();
+            headers_["REMOTE_PORT"]     = to_string(socket_.remote_endpoint().port());
+
+            {
+              // Parse "URI?QUERY_STRING"
+              auto split_idx = uri_.find("?");
+              
+              if (std::string::npos != split_idx)
+              {
+                string query = uri_.substr(split_idx + 1);
+                uri_ = uri_.substr(0, split_idx);
+                headers_["QUERY_STRING"] = query;
+              } else {
+                headers_["QUERY_STRING"] = "";
+              }
+              
+              headers_["REQUEST_URI"]  = uri_;
+            }
+
+            // for ( auto it = headers_.begin(); it != headers_.end(); ++it ) {
+            //   cout << "[H] " << it->first << ": " << it->second << endl;
+            // }
 
             // Process URI
             if (uri_[0] == '/') {
@@ -123,6 +168,12 @@ private:
             } else {
               int sock = socket_.native_handle();
 
+              clearenv();
+
+              for (auto& h : headers_) {
+                setenv(h.first.c_str(), h.second.c_str(), 1);
+              }
+
               dup2(sock, STDIN_FILENO);
               dup2(sock, STDOUT_FILENO);
 
@@ -144,6 +195,7 @@ private:
   char data_[max_length];
   string uri_;
   string method_;
+  unordered_map<string, string> headers_;
 };
 
 class server
