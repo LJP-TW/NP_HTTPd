@@ -114,6 +114,7 @@ private:
           }
 
           headers_["REQUEST_METHOD"]  = method_;
+          headers_["REQUEST_URI"]     = uri_;
           headers_["SERVER_PROTOCOL"] = http_version;
           headers_["SERVER_ADDR"]     = socket_.local_endpoint().address().to_string();
           headers_["SERVER_PORT"]     = to_string(socket_.local_endpoint().port());
@@ -131,13 +132,7 @@ private:
             } else {
               headers_["QUERY_STRING"] = "";
             }
-            
-            headers_["REQUEST_URI"]  = uri_;
           }
-
-          // for ( auto it = headers_.begin(); it != headers_.end(); ++it ) {
-          //   cout << "[H] " << it->first << ": " << it->second << endl;
-          // }
 
           // Process URI
           if (uri_[0] == '/') {
