@@ -5,6 +5,7 @@
 
 # for testing
 /work_dir
+/np_project3_demo_sample
 
 # target binary
 http_server

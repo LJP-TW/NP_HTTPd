@@ -145,7 +145,9 @@ private:
           }
           
           // Execute CGI
-          do_execute_cgi();
+          if (uri_.length() >= 5 && uri_.substr(uri_.length() - 4) == ".cgi") {
+            do_execute_cgi();
+          }
         }
       });
   }

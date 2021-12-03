@@ -9,6 +9,7 @@ HTTP_SERVER = http_server
 HTTP_SERVER_SRC = ./http_server_dir/src
 
 CONSOLE_CGI = console.cgi
+CONSOLE_CGI_SRC = ./cgi_dir/src
 
 all: $(HTTP_SERVER) $(CONSOLE_CGI)
 	
@@ -18,6 +19,7 @@ $(HTTP_SERVER):
 
 $(CONSOLE_CGI):
 	@echo "Compiling" $@ "..."
+	$(CXX) $(CONSOLE_CGI_SRC)/console.cpp -o $@ $(CXX_INCLUDE_PARAMS) $(CXX_LIB_PARAMS) $(CXXFLAGS)
 
 clean:
 	rm -f $(HTTP_SERVER)
